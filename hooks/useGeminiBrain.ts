@@ -43,11 +43,11 @@ export const useGeminiBrain = ({
                     })
                 });
 
-                if (!response.ok) {
-                    throw new Error('Failed to fetch advice');
-                }
-
                 const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to fetch advice');
+                }
 
                 if (data.advice && data.advice.trim()) {
                     // Check if the advice says no action needed

@@ -101,11 +101,12 @@ export default function App() {
                 }),
             });
 
+            const data = await res.json();
+
             if (!res.ok) {
-                throw new Error('Failed to generate notes');
+                throw new Error(data.error || 'Failed to generate notes');
             }
 
-            const data = await res.json();
             const textToDownload = data.notes || '';
 
             // Auto-trigger download
@@ -121,9 +122,9 @@ export default function App() {
             URL.revokeObjectURL(url);
 
             setIsEndMeetingModalOpen(false);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Notes Generation Error:', err);
-            alert('Failed to generate meeting notes.');
+            alert(`Failed to generate meeting notes: ${err.message}`);
         } finally {
             setIsGeneratingNotes(false);
         }
