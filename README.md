@@ -1,36 +1,33 @@
-# Silent Observer (Technical Co-pilot)
+# Sidekick V2 - AI Meeting Assistant
 
-**Silent Observer** is a real-time, AI-powered meeting assistant designed for technical professionals, such as Google Cloud PSO (Professional Services Organization) engineers. It acts as your "Technical Co-pilot" or "Silent Wingman," listening to your live meetings and providing deep-dive technical insights synchronously.
+**Sidekick** is a specialized meeting assistant designed to act as your "silent partner" during client calls. It doesn't just transcribe—it analyzes the conversation in real-time, providing you with proactive technical advice, customer insights, and strategic guidance to help you win the room.
 
-## 🚀 Use Case
+## ✨ New in V2
+- **Next.js Migration:** Rebuilt the entire stack with Next.js (App Router) for improved performance and server-side capabilities.
+- **Server-Side Context Caching:** Implemented Gemini Context Caching to handle large document sets (PDFs, DOCX) efficiently, reducing latency and cost.
+- **Dynamic Projects:** Create dedicated workspaces for different meetings with custom goals and uploaded context files.
+- **Improved UI:** Refined dashboard with a focus on real-time feedback and glassmorphic design.
 
-When you're in a high-stakes technical meeting or discovery session:
-- **Expert Suggestions:** The app produces "Consultant Cards" that offer technically robust suggestions, covering not just the "what" but the "why" and "how."
-- **Passive Listening:** It uses Deepgram for live transcription and Gemini to analyze the conversation without you needing to take manual notes.
+## 🚀 Key Features
+- **Passive Listening:** Uses Deepgram for live transcription and Gemini to analyze the conversation without you needing to take manual notes.
 - **Expert Persona:** Responses are framed in the first person ("I recommend...", "We should consider...") so you can bridge the gap between listening and speaking seamlessly.
-- **Context Awareness:** Upload PDFs, DOCX, or text files (like architecture diagrams or requirement docs) to provide the AI with specific project context.
+- **Context Awareness:** Upload PDFs, DOCX, or text files to provide the AI with specific project context.
 
-## 🛠 How to Change the Prompt
+## 🛠 Project Configuration
 
-Depending on your needs, you can adjust the AI's behavior in two ways:
+In V2, behavior can be customized via the UI and project-specific settings.
 
-### 1. Meeting-Specific Refinements (UI)
-In the **Context Panel** (on the left side of the app), use the **"Custom Instructions"** box.
-- Use this for transient instructions like: *"Focus on GKE security features today"* or *"The customer is very concerned about cost optimization."*
-- These instructions are appended to the core system prompt for that session.
+### 1. Global System Instructions
+The base personality of the assistant is defined in the Gemini API configuration within the server-side routes (`app/api/setup/route.ts`).
 
-### 2. Core Behavior & Persona (Code)
-To change the fundamental role, tone, or triggers of the AI:
-1. Open [`App.tsx`](App.tsx).
-2. Locate the `systemInstruction` constant (near line 14).
-3. Edit the `textPrompt` variable. Here you can modify:
-   - The **Persona** (e.g., change from PSO Engineer to a Solutions Architect).
-   - The **Response Format** (bullet points, first-person style, etc.).
-   - The **Triggers** (when the AI should generate a suggestion).
+### 2. Meeting-Specific Refinements (UI)
+In the dashboard, you can define:
+- **Project Goals:** Specific outcomes you want to achieve for the meeting.
+- **Project Context:** Uploaded files that act as the knowledge base for the sessions.
 
 ## 🏃 Run Locally
 
-**Prerequisites:** Node.js
+**Prerequisites:** Node.js 18+
 
 1.  **Install dependencies:**
     ```bash
@@ -47,4 +44,3 @@ To change the fundamental role, tone, or triggers of the AI:
 
 ---
 View your app in AI Studio: https://aistudio.corp.google.com/apps/temp/1
-

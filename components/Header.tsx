@@ -31,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
           <CloudLightning className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-white tracking-tight">Omer Wingman</h1>
+          <h1 className="text-lg font-bold text-white tracking-tight">sidekick</h1>
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : status === 'error' ? 'bg-red-500' : 'bg-gray-600'}`} />
             <span className="text-xs text-gray-400 font-mono uppercase">{status}</span>
