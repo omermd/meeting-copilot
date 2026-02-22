@@ -23,6 +23,7 @@ interface UseSilentObserverReturn {
     segments: TranscriptSegment[];
     interimText: string;
     fullTranscript: string;
+    formattedTranscript: string;
     cards: ConsultantCard[];
     isThinking: boolean;
     secondsUntilNext: number;
@@ -42,6 +43,7 @@ export const useSilentObserver = ({
         segments,
         interimText,
         fullTranscript,
+        formattedTranscript,
         connect: dgConnect,
         disconnect: dgDisconnect,
         clearTranscript,
@@ -114,6 +116,7 @@ export const useSilentObserver = ({
         segments,
         interimText,
         fullTranscript,
+        formattedTranscript,
         cards,
         isThinking,
         secondsUntilNext,

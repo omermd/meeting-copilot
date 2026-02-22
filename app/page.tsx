@@ -15,6 +15,10 @@ export default function App() {
     const [isSettingUp, setIsSettingUp] = useState<boolean>(false);
     const [setupError, setSetupError] = useState<string | null>(null);
 
+    // End Meeting Modal State
+    const [isEndMeetingModalOpen, setIsEndMeetingModalOpen] = useState<boolean>(false);
+    const [isGeneratingNotes, setIsGeneratingNotes] = useState<boolean>(false);
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             setFiles(Array.from(e.target.files));
@@ -65,6 +69,7 @@ export default function App() {
         status,
         segments,
         interimText,
+        formattedTranscript,
         cards,
         isThinking,
         secondsUntilNext,
@@ -82,6 +87,47 @@ export default function App() {
             cooldownSeconds: 10,
         },
     });
+
+    const handleGenerateNotes = async () => {
+        setIsGeneratingNotes(true);
+        try {
+            const res = await fetch('/api/notes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    formattedTranscript,
+                    filesContext: sessionConfig?.filesContext,
+                    projectGoal: sessionConfig?.projectGoal,
+                }),
+            });
+
+            if (!res.ok) {
+                throw new Error('Failed to generate notes');
+            }
+
+            const data = await res.json();
+            const textToDownload = data.notes || '';
+
+            // Auto-trigger download
+            const blob = new Blob([textToDownload], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const dateStr = new Date().toISOString().split('T')[0];
+            a.download = `Meeting_Notes_${dateStr}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            setIsEndMeetingModalOpen(false);
+        } catch (err) {
+            console.error('Notes Generation Error:', err);
+            alert('Failed to generate meeting notes.');
+        } finally {
+            setIsGeneratingNotes(false);
+        }
+    };
 
     // Setup Screen Display
     if (!sessionConfig) {
@@ -189,6 +235,7 @@ export default function App() {
                 isOnCooldown={isOnCooldown}
                 isThinking={isThinking}
                 manualTrigger={manualTrigger}
+                onEndMeeting={() => setIsEndMeetingModalOpen(true)}
             />
 
             <div className="flex-1 flex overflow-hidden">
@@ -203,6 +250,42 @@ export default function App() {
                     />
                 </main>
             </div>
+
+            {/* End Meeting Modal */}
+            {isEndMeetingModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl w-full max-w-md shadow-2xl relative">
+                        <h2 className="text-xl font-bold text-white mb-2">Generate Meeting Artifacts?</h2>
+                        <p className="text-gray-400 text-sm mb-6">
+                            This will summarize the meeting audio and cross-reference your context files.
+                        </p>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setIsEndMeetingModalOpen(false)}
+                                disabled={isGeneratingNotes}
+                                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                            >
+                                Ignore / Close
+                            </button>
+                            <button
+                                onClick={handleGenerateNotes}
+                                disabled={isGeneratingNotes}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {isGeneratingNotes ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Generating...
+                                    </>
+                                ) : (
+                                    'Generate Notes'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
