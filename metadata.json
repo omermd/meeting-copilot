@@ -1,0 +1,7 @@
+{
+  "name": "Meeting Assistant",
+  "description": "A real-time meeting assistant for Cloud Engineers, providing live answers and contribution suggestions using Gemini Live API.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

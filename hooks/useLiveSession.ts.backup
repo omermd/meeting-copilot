@@ -1,0 +1,305 @@
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
+import { createPcmBlob, base64Decode, decodeAudioData, AUDIO_INPUT_SAMPLE_RATE, AUDIO_OUTPUT_SAMPLE_RATE } from '../utils/audio-utils';
+import { Message, ConnectionStatus } from '../types';
+
+interface UseLiveSessionProps {
+  apiKey: string;
+  systemInstruction: string | { parts: any[] };
+}
+
+export const useLiveSession = ({ apiKey, systemInstruction }: UseLiveSessionProps) => {
+  const [status, setStatus] = useState<ConnectionStatus>('disconnected');
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  const [streamingUserText, setStreamingUserText] = useState('');
+  const [streamingModelText, setStreamingModelText] = useState('');
+
+  const [volume, setVolume] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+
+  const inputAudioContextRef = useRef<AudioContext | null>(null);
+  const outputAudioContextRef = useRef<AudioContext | null>(null);
+  const outputGainNodeRef = useRef<GainNode | null>(null);
+  const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
+  const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const nextStartTimeRef = useRef<number>(0);
+  const sessionRef = useRef<any>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Track audio sources to stop them on interruption
+  const audioSourcesRef = useRef<AudioBufferSourceNode[]>([]);
+
+  const currentInputTranscriptionRef = useRef('');
+  const currentOutputTranscriptionRef = useRef('');
+  const inputTranscriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const connect = useCallback(async () => {
+    if (!apiKey) return;
+
+    // FRESH START: Clear messages on connect
+    setMessages([]);
+    setStreamingUserText('');
+    setStreamingModelText('');
+
+    setStatus('connecting');
+
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      inputAudioContextRef.current = new AudioContextClass({ sampleRate: AUDIO_INPUT_SAMPLE_RATE });
+      outputAudioContextRef.current = new AudioContextClass({ sampleRate: AUDIO_OUTPUT_SAMPLE_RATE });
+
+      await inputAudioContextRef.current.resume();
+      await outputAudioContextRef.current.resume();
+
+      outputGainNodeRef.current = outputAudioContextRef.current!.createGain();
+      outputGainNodeRef.current.gain.value = isMuted ? 0 : volume;
+      outputGainNodeRef.current.connect(outputAudioContextRef.current!.destination);
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const sessionPromise = ai.live.connect({
+        model: 'gemini-2.5-flash-native-audio-preview-12-2025',
+        callbacks: {
+          onopen: () => {
+            console.log('Gemini Live Session Opened');
+            setStatus('connected');
+
+            if (!inputAudioContextRef.current) return;
+
+            mediaStreamSourceRef.current = inputAudioContextRef.current.createMediaStreamSource(stream);
+            scriptProcessorRef.current = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
+
+            scriptProcessorRef.current.onaudioprocess = (e) => {
+              if (!inputAudioContextRef.current) return;
+              const inputData = e.inputBuffer.getChannelData(0);
+              const pcmBlob = createPcmBlob(inputData);
+              sessionPromise.then((session) => {
+                session.sendRealtimeInput({ media: pcmBlob });
+              });
+            };
+
+            mediaStreamSourceRef.current.connect(scriptProcessorRef.current);
+            scriptProcessorRef.current.connect(inputAudioContextRef.current.destination);
+          },
+          onmessage: async (message: LiveServerMessage) => {
+            const { serverContent } = message;
+            if (!serverContent) return;
+
+            // Handle Interruption (User spoke while Model was speaking)
+            if (serverContent.interrupted) {
+              setMessages(prev => [...prev, {
+                id: Date.now().toString() + '-model-interrupted',
+                role: 'model',
+                text: text,
+                timestamp: new Date()
+              }]);
+              currentOutputTranscriptionRef.current = '';
+              setStreamingModelText('');
+            }
+          }
+
+            // Handle Input Transcription (User)
+            if(serverContent.inputTranscription) {
+          currentInputTranscriptionRef.current += serverContent.inputTranscription.text;
+      setStreamingUserText(currentInputTranscriptionRef.current);
+
+      // Clear previous timeout
+      if (inputTranscriptionTimeoutRef.current) {
+        clearTimeout(inputTranscriptionTimeoutRef.current);
+      }
+
+      // Set new timeout to commit text after silence (1s)
+      inputTranscriptionTimeoutRef.current = setTimeout(() => {
+        if (currentInputTranscriptionRef.current.trim()) {
+          const text = currentInputTranscriptionRef.current;
+          setMessages(prev => [...prev, {
+            id: Date.now().toString() + '-user',
+            role: 'user',
+            text: text,
+            timestamp: new Date()
+          }]);
+          currentInputTranscriptionRef.current = '';
+          setStreamingUserText('');
+        }
+      }, 1000);
+    }
+
+            // Handle Output Transcription (Model)
+            if (serverContent.outputTranscription) {
+      // CRITICAL FIX: If the model starts speaking, we MUST commit any pending user text immediately.
+      if (currentInputTranscriptionRef.current.trim()) {
+        if (inputTranscriptionTimeoutRef.current) {
+          clearTimeout(inputTranscriptionTimeoutRef.current);
+        }
+        const text = currentInputTranscriptionRef.current;
+        setMessages(prev => [...prev, {
+          id: Date.now().toString() + '-user-forced',
+          role: 'user',
+          text: text,
+          timestamp: new Date()
+        }]);
+        currentInputTranscriptionRef.current = '';
+        setStreamingUserText('');
+      }
+
+      currentOutputTranscriptionRef.current += serverContent.outputTranscription.text;
+      setStreamingModelText(currentOutputTranscriptionRef.current);
+    }
+
+    // Handle Turn Completion
+    if (serverContent.turnComplete) {
+      // Commit Model Text
+      if (currentOutputTranscriptionRef.current.trim()) {
+        const text = currentOutputTranscriptionRef.current;
+        setMessages(prev => [...prev, {
+          id: Date.now().toString() + '-model',
+          role: 'model',
+          text: text,
+          timestamp: new Date()
+        }]);
+        currentOutputTranscriptionRef.current = '';
+        setStreamingModelText('');
+      }
+    }
+
+    // Handle Audio Output
+    const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
+    if (base64Audio && outputAudioContextRef.current && outputGainNodeRef.current) {
+      try {
+        const audioData = base64Decode(base64Audio);
+        // Sync timing
+        nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputAudioContextRef.current.currentTime);
+
+        const audioBuffer = await decodeAudioData(audioData, outputAudioContextRef.current);
+        const source = outputAudioContextRef.current.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(outputGainNodeRef.current);
+
+        source.onended = () => {
+          audioSourcesRef.current = audioSourcesRef.current.filter(s => s !== source);
+        };
+
+        source.start(nextStartTimeRef.current);
+        audioSourcesRef.current.push(source);
+        nextStartTimeRef.current += audioBuffer.duration;
+      } catch (e) {
+        console.warn("Error decoding audio chunk", e);
+      }
+    }
+  },
+    onclose: (e) => {
+      console.log('Gemini Live Session Closed', e);
+      setStatus('disconnected');
+
+      if (inputTranscriptionTimeoutRef.current) {
+        clearTimeout(inputTranscriptionTimeoutRef.current);
+      }
+
+      setStreamingUserText('');
+      setStreamingModelText('');
+      currentInputTranscriptionRef.current = '';
+      currentOutputTranscriptionRef.current = '';
+      nextStartTimeRef.current = 0;
+      audioSourcesRef.current = [];
+    },
+    onerror: (err) => {
+      console.error('Gemini Live Session Error', err);
+      setStatus('error');
+      setStreamingUserText('');
+      setStreamingModelText('');
+    }
+        },
+  config: {
+    responseModalities: [Modality.AUDIO],
+    speechConfig: {
+      voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } }
+    },
+    inputAudioTranscription: {},
+    outputAudioTranscription: {},
+    // Use the structured instruction here
+    systemInstruction: systemInstruction as any,
+        }
+      });
+
+sessionRef.current = sessionPromise;
+
+    } catch (error) {
+  console.error('Connection failed:', error);
+  setStatus('error');
+}
+  }, [apiKey, systemInstruction, isMuted, volume]);
+
+const disconnect = useCallback(() => {
+  if (sessionRef.current) {
+    sessionRef.current.then((session: any) => {
+      if (session.close) session.close();
+    });
+  }
+
+  if (streamRef.current) {
+    streamRef.current.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+  }
+
+  audioSourcesRef.current.forEach(source => {
+    try { source.stop(); } catch (e) { }
+  });
+  audioSourcesRef.current = [];
+
+  if (inputAudioContextRef.current) {
+    inputAudioContextRef.current.close();
+    inputAudioContextRef.current = null;
+  }
+
+  if (outputAudioContextRef.current) {
+    outputAudioContextRef.current.close();
+    outputAudioContextRef.current = null;
+  }
+
+  if (inputTranscriptionTimeoutRef.current) {
+    clearTimeout(inputTranscriptionTimeoutRef.current);
+  }
+
+  scriptProcessorRef.current = null;
+  setStatus('disconnected');
+  nextStartTimeRef.current = 0;
+
+  setMessages([]);
+  currentInputTranscriptionRef.current = '';
+  currentOutputTranscriptionRef.current = '';
+  setStreamingUserText('');
+  setStreamingModelText('');
+}, []);
+
+const setAudioVolume = (val: number) => {
+  setVolume(val);
+  if (outputGainNodeRef.current && !isMuted) {
+    outputGainNodeRef.current.gain.value = val;
+  }
+};
+
+const toggleMute = () => {
+  const newMuteState = !isMuted;
+  setIsMuted(newMuteState);
+  if (outputGainNodeRef.current) {
+    outputGainNodeRef.current.gain.value = newMuteState ? 0 : volume;
+  }
+};
+
+return {
+  status,
+  messages,
+  streamingUserText,
+  streamingModelText,
+  connect,
+  disconnect,
+  volume,
+  setVolume: setAudioVolume,
+  isMuted,
+  toggleMute
+};
+};
