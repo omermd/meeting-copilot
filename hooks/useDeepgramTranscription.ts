@@ -21,6 +21,8 @@ interface UseDeepgramTranscriptionReturn {
     interimText: string;
     /** Full combined transcript of all finalized segments */
     fullTranscript: string;
+    /** Full transcript with timestamps and speaker labels */
+    formattedTranscript: string;
     connect: () => Promise<void>;
     disconnect: () => void;
     /** Clear transcript history */
@@ -45,6 +47,13 @@ export const useDeepgramTranscription = ({
 
     // Build the full transcript from segments
     const fullTranscript = segments.map(s => s.text).join(' ');
+
+    // Build formatted transcript with timestamps
+    const formattedTranscript = segments.map(s => {
+        const time = s.timestamp.toLocaleTimeString('en-US', { hour12: false });
+        const speakerStr = s.speaker ? `${s.speaker}: ` : '';
+        return `[${time}] ${speakerStr}${s.text}`;
+    }).join('\n');
 
     const clearTranscript = useCallback(() => {
         setSegments([]);
@@ -236,6 +245,7 @@ export const useDeepgramTranscription = ({
         segments,
         interimText,
         fullTranscript,
+        formattedTranscript,
         connect,
         disconnect,
         clearTranscript,

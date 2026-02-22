@@ -10,6 +10,7 @@ interface HeaderProps {
   isOnCooldown: boolean;
   isThinking: boolean;
   manualTrigger: () => void;
+  onEndMeeting: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   isOnCooldown,
   isThinking,
   manualTrigger,
+  onEndMeeting,
 }) => {
   const isConnected = status === 'connected';
   const isConnecting = status === 'connecting';
@@ -31,7 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
           <CloudLightning className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-white tracking-tight">Omer Wingman</h1>
+          <h1 className="text-lg font-bold text-white tracking-tight">sidekick</h1>
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : status === 'error' ? 'bg-red-500' : 'bg-gray-600'}`} />
             <span className="text-xs text-gray-400 font-mono uppercase">{status}</span>
@@ -82,13 +84,21 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Connect / Disconnect */}
         {isConnected ? (
-          <button
-            onClick={disconnect}
-            className="flex items-center gap-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-red-500/20"
-          >
-            <Power className="w-4 h-4" />
-            <span>Disconnect</span>
-          </button>
+          <>
+            <button
+              onClick={onEndMeeting}
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-red-500/20"
+            >
+              <Power className="w-4 h-4" />
+              <span>End Meeting</span>
+            </button>
+            <button
+              onClick={disconnect}
+              className="flex items-center gap-2 bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-gray-700"
+            >
+              <span>Disconnect</span>
+            </button>
+          </>
         ) : (
           <button
             onClick={connect}
