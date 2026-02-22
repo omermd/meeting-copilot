@@ -8,6 +8,9 @@ const config: Config = {
     ],
     theme: {
         extend: {
+            fontFamily: {
+                google: ['"Google Sans"', '"Product Sans"', 'sans-serif'],
+            },
             colors: {
                 brand: {
                     50: '#f5f7ff',

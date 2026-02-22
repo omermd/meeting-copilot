@@ -133,7 +133,7 @@ export default function App() {
     // Setup Screen Display
     if (!sessionConfig) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 text-gray-100 font-sans p-6">
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 text-gray-100 font-google p-6">
                 <div className="mb-8 text-center">
                     <h1 className="text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-brand-400 to-emerald-400 mb-2">
                         sidekick
@@ -227,7 +227,7 @@ export default function App() {
 
     // Live Meeting Mode Display
     return (
-        <div className="flex flex-col h-screen bg-gray-950 text-gray-100 font-sans">
+        <div className="flex flex-col h-screen bg-gray-950 text-gray-100 font-google">
             <Header
                 status={status}
                 connect={connect}

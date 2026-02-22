@@ -109,7 +109,7 @@ export const LiveFeed: React.FC<LiveFeedProps> = ({
   // Disconnected / Empty Landing State
   if (!hasContent && status === 'disconnected') {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-gray-500 p-8 text-center h-full">
+      <div className="flex-1 flex flex-col items-center justify-center text-gray-500 p-8 text-center h-full font-sans">
         <Bot className="w-16 h-16 mb-4 opacity-20" />
         <p className="text-lg font-medium text-gray-400">Silent Observer Mode</p>
         <p className="text-sm max-w-md mt-2">
@@ -136,7 +136,7 @@ export const LiveFeed: React.FC<LiveFeedProps> = ({
 
   // Split View Layout
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden font-sans">
       {/* LEFT COLUMN: LIVE TRANSCRIPT */}
       <div className="flex-1 flex flex-col border-r border-gray-800 bg-gray-900/30 min-w-0">
         <div className="h-12 border-b border-gray-800 flex items-center px-4 gap-2 bg-gray-900/50 sticky top-0 z-10 backdrop-blur-sm shrink-0">
