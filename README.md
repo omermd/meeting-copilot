@@ -1,8 +1,13 @@
-# Sidekick V2 - AI Meeting Assistant
+# Sidekick V3 - AI Meeting Assistant
 
 **Sidekick** is a specialized meeting assistant designed to act as your "silent partner" during client calls. It doesn't just transcribe—it analyzes the conversation in real-time, providing you with proactive technical advice, customer insights, and strategic guidance to help you win the room.
 
-## ✨ New in V2
+## ✨ New in V3: Automated Meeting Minutes
+- **End-of-Meeting Artifacts:** When you stop the meeting, Sidekick uses **Gemini 2.0 Flash** to automatically summarize the entire transcript.
+- **Context-Aware Summaries:** The generated notes natively cross-reference your uploaded context files (SOWs, TDDs) and project goals to provide highly relevant Executive Summaries, Decisions, Action Items, and Risks.
+- **Instant Markdown Download:** Automatically downloads a clean `.md` file containing your structured meeting notes.
+
+## ⏪ New in V2: Architecture & Setup
 - **Next.js Migration:** Rebuilt the entire stack with Next.js (App Router) for improved performance and server-side capabilities.
 - **Server-Side Context Caching:** Implemented Gemini Context Caching to handle large document sets (PDFs, DOCX) efficiently, reducing latency and cost.
 - **Dynamic Projects:** Create dedicated workspaces for different meetings with custom goals and uploaded context files.
