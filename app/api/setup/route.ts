@@ -51,25 +51,25 @@ export async function POST(req: NextRequest) {
     
 ROLE:
 You are Omer's "Technical Co-pilot" — a Silent Wingman. Omer is in a meeting and you are listening passively via a live transcript.
-Your job is to analyze the conversation and produce "Consultant Cards" — concise but technically deep suggestions.
+Your job is to produce exact, word-for-word scripts of what Omer should say next in the meeting. Do not give Omer advice; give him his exact lines to read out loud.
 
 PROJECT GOAL:
 ${projectGoal}
 
 RESPONSE FORMAT:
-1. **FIRST PERSON:** Speak as if YOU are Omer. Start sentences with "I recommend...", "We should consider...", "In my experience...".
-2. **DETAILED & COMPREHENSIVE:** Do NOT be brief. Provide a full, technically robust answer that covers the "Why" and "How". Omer needs to sound like an expert, so give the deep dive immediately.
-3. **DIVING DEEP:** Explain the benefits, trade-offs, and security implications in detail.
-4. **STRUCTURED:** Format your advice. Include clear suggestions.
+1. **FIRST PERSON SCRIPT:** You MUST write exact scripts of what to say. Start directly with the words Omer should speak, such as "Hi everyone, I'm Omer...", "I recommend we look into...", "From my experience, we should consider...". Do NOT write "Omer should say" or "I should ask" or "I recommend focusing on". Write the actual spoken words intended for the client.
+2. **READABLE & NATURAL:** Write the response so it can be read out loud naturally to the client. Keep it conversational but highly professional and technical.
+3. **DETAILED & COMPREHENSIVE:** Do NOT be brief. Provide a full, technically robust answer that covers the "Why" and "How". Omer needs to sound like an expert, so give him the deep dive script immediately.
+4. **STRUCTURED:** Format the spoken script clearly. Use bolding to make it easy for Omer to scan while speaking.
 
 L4-TO-L5 VISIBILITY ENGINE LOGIC:
-Focus heavily on identifying architectural gaps, suggesting advanced discovery questions, and proactively providing "Pulse Checks" if Omer needs to take the floor.
-Use the uploaded files as the primary "Ground Truth" for all your advice.
+Focus heavily on identifying architectural gaps and suggesting advanced discovery questions.
+Use the uploaded files as the primary "Ground Truth" for all your scripts.
 
 TRIGGERS:
-1. **DIRECT QUESTIONS:** If the customer asks a question, answer it immediately and fully.
-2. **MISSED OPPORTUNITIES:** If the conversation misses a key GCP feature, jump in with a detailed suggestion on why we should use it.
-3. **VAGUE REQUIREMENTS:** If the customer is vague, provide a script for Omer to ask discovery questions, explaining *why* we need to know that information.`;
+1. **DIRECT QUESTIONS:** If the customer asks a question, provide the exact script for Omer to answer it immediately and fully.
+2. **MISSED OPPORTUNITIES:** If the conversation misses a key GCP feature, provide the exact script for Omer to interject and suggest it.
+3. **VAGUE REQUIREMENTS:** If the customer is vague, provide the exact script of discovery questions for Omer to ask, including the explanation of *why* he needs to know that information.`;
 
         let cacheName: string | undefined;
 
@@ -77,7 +77,7 @@ TRIGGERS:
             // Initialize the dynamic context cache
             // Note: Gemini 1.5 Flash supports Cached Content
             const cacheResult = await cacheManager.create({
-                model: 'models/gemini-2.0-flash',
+                model: 'models/gemini-2.5-flash',
                 displayName: 'copilot-dynamic-session',
                 systemInstruction,
                 contents: [

@@ -81,7 +81,7 @@ export default function App() {
         deepgramApiKey: process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY || '',
         sessionConfig,
         triggerConfig: {
-            intervalSeconds: 30,
+            intervalSeconds: 60,
             triggerOnQuestions: true,
             minBufferLength: 50,
             cooldownSeconds: 10,
@@ -91,23 +91,12 @@ export default function App() {
     const handleGenerateNotes = async () => {
         setIsGeneratingNotes(true);
         try {
-            const res = await fetch('/api/notes', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    formattedTranscript,
-                    filesContext: sessionConfig?.filesContext,
-                    projectGoal: sessionConfig?.projectGoal,
-                }),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || 'Failed to generate notes');
+            if (!formattedTranscript || formattedTranscript.trim() === '') {
+                throw new Error("No transcript data available to save.");
             }
 
-            const textToDownload = data.notes || '';
+            const transcriptTitle = `# Meeting Transcript: ${new Date().toLocaleString()}\n\n`;
+            const textToDownload = transcriptTitle + formattedTranscript;
 
             // Auto-trigger download
             const blob = new Blob([textToDownload], { type: 'text/markdown' });
@@ -115,7 +104,7 @@ export default function App() {
             const a = document.createElement('a');
             a.href = url;
             const dateStr = new Date().toISOString().split('T')[0];
-            a.download = `Meeting_Notes_${dateStr}.md`;
+            a.download = `Meeting_Transcript_${dateStr}.md`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -123,8 +112,8 @@ export default function App() {
 
             setIsEndMeetingModalOpen(false);
         } catch (err: any) {
-            console.error('Notes Generation Error:', err);
-            alert(`Failed to generate meeting notes: ${err.message}`);
+            console.error('Transcript Save Error:', err);
+            alert(`Failed to save transcript: ${err.message}`);
         } finally {
             setIsGeneratingNotes(false);
         }
@@ -138,7 +127,7 @@ export default function App() {
                     <h1 className="text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-brand-400 to-emerald-400 mb-2">
                         sidekick
                     </h1>
-                    <p className="text-gray-400 text-lg">Multi-Project Setup powered by Gemini 1.5 Flash</p>
+                    <p className="text-gray-400 text-lg">Multi-Project Setup powered by Gemini 2.5 Flash</p>
                 </div>
 
                 <div className="max-w-xl w-full bg-gray-900 border border-gray-800 rounded-2xl shadow-xl overflow-hidden">
@@ -256,9 +245,9 @@ export default function App() {
             {isEndMeetingModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl w-full max-w-md shadow-2xl relative">
-                        <h2 className="text-xl font-bold text-white mb-2">Generate Meeting Artifacts?</h2>
+                        <h2 className="text-xl font-bold text-white mb-2">Save Meeting Transcript?</h2>
                         <p className="text-gray-400 text-sm mb-6">
-                            This will summarize the meeting audio and cross-reference your context files.
+                            This will download the raw meeting transcript as a markdown file.
                         </p>
 
                         <div className="flex justify-end gap-3">
@@ -277,10 +266,10 @@ export default function App() {
                                 {isGeneratingNotes ? (
                                     <>
                                         <Loader2 className="w-4 h-4 animate-spin" />
-                                        Generating...
+                                        Saving...
                                     </>
                                 ) : (
-                                    'Generate Notes'
+                                    'Save Transcript'
                                 )}
                             </button>
                         </div>

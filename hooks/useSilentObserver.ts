@@ -64,12 +64,16 @@ export const useSilentObserver = ({
     });
 
     const getTranscriptBuffer = useCallback(() => {
-        const buffer = fullTranscript + (interimText ? ' ' + interimText : '');
-        if (buffer.length > CONTEXT_BUFFER_MAX_CHARS) {
-            return buffer.slice(-CONTEXT_BUFFER_MAX_CHARS);
+        // Use formatted transcript to keep speaker labels for the AI Coach
+        const buffer = formattedTranscript + (interimText ? '\n[Interim]: ' + interimText : '');
+
+        // Sliding window: only keep the last ~300 words
+        const words = buffer.split(/\s+/);
+        if (words.length > 300) {
+            return words.slice(-300).join(' ');
         }
         return buffer;
-    }, [fullTranscript, interimText]);
+    }, [formattedTranscript, interimText]);
 
     const handleTrigger = useCallback(
         (buffer: string, reason: TriggerReason) => {

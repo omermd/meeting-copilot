@@ -113,7 +113,7 @@ export const useDeepgramTranscription = ({
 
         try {
             // 1. Get microphone access
-            const stream = await navigator.mediaDevices.getUserMedia({
+            const micStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     channelCount: 1,
                     sampleRate: 16000,
@@ -121,7 +121,28 @@ export const useDeepgramTranscription = ({
                     noiseSuppression: true,
                 },
             });
-            streamRef.current = stream;
+
+            // 1b. Get system/meeting audio via screen share
+            let displayStream: MediaStream | null = null;
+            try {
+                displayStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { displaySurface: 'browser' } as any, // Request tab by default
+                    audio: {
+                        channelCount: 1,
+                        sampleRate: 16000,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                    } as any,
+                });
+            } catch (e) {
+                console.warn('[Deepgram] Screen capture for audio failed or was cancelled by user:', e);
+            }
+
+            const allTracks = [...micStream.getTracks()];
+            if (displayStream) {
+                allTracks.push(...displayStream.getTracks());
+            }
+            streamRef.current = new MediaStream(allTracks);
 
             // 2. Build Deepgram WebSocket URL with query params
             const params = new URLSearchParams({
@@ -159,7 +180,17 @@ export const useDeepgramTranscription = ({
                 const audioContext = new AudioContextClass({ sampleRate: 16000 });
                 audioContextRef.current = audioContext;
 
-                const source = audioContext.createMediaStreamSource(stream);
+                // Mix microphone and system audio using a GainNode
+                const mixNode = audioContext.createGain();
+
+                const micSource = audioContext.createMediaStreamSource(micStream);
+                micSource.connect(mixNode);
+
+                if (displayStream && displayStream.getAudioTracks().length > 0) {
+                    const displaySource = audioContext.createMediaStreamSource(displayStream);
+                    displaySource.connect(mixNode);
+                }
+
                 const processor = audioContext.createScriptProcessor(4096, 1, 1);
                 processorRef.current = processor;
 
@@ -175,7 +206,7 @@ export const useDeepgramTranscription = ({
                     ws.send(int16.buffer);
                 };
 
-                source.connect(processor);
+                mixNode.connect(processor);
                 processor.connect(audioContext.destination);
             };
 
