@@ -70,14 +70,14 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'bg-brand-600/20 text-brand-400 border-brand-500/30 hover:bg-brand-600/30 hover:border-brand-500/50 active:scale-95'
                 }
               `}
-              title={isThinking ? 'Generating...' : isOnCooldown ? 'On cooldown' : 'Ask Gemini Now'}
+              title={isThinking ? 'Generating...' : isOnCooldown ? 'On cooldown' : 'Answer now'}
             >
               {isThinking ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
                 <Zap className="w-3.5 h-3.5" />
               )}
-              <span>{isThinking ? 'Thinking…' : 'Ask Now'}</span>
+              <span>{isThinking ? 'Thinking…' : 'Answer now'}</span>
             </button>
           </div>
         )}

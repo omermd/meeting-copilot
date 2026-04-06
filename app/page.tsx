@@ -81,10 +81,10 @@ export default function App() {
         deepgramApiKey: process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY || '',
         sessionConfig,
         triggerConfig: {
-            intervalSeconds: 60,
+            intervalSeconds: 120,
             triggerOnQuestions: true,
             minBufferLength: 50,
-            cooldownSeconds: 10,
+            cooldownSeconds: 60,
         },
     });
 
@@ -95,8 +95,25 @@ export default function App() {
                 throw new Error("No transcript data available to save.");
             }
 
-            const transcriptTitle = `# Meeting Transcript: ${new Date().toLocaleString()}\n\n`;
-            const textToDownload = transcriptTitle + formattedTranscript;
+            // Generate meeting notes from the /api/notes endpoint
+            const res = await fetch('/api/notes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    formattedTranscript,
+                    filesContext: sessionConfig?.filesContext,
+                    projectGoal: sessionConfig?.projectGoal,
+                }),
+            });
+
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Failed to generate meeting notes.');
+            }
+
+            const data = await res.json();
+            const transcriptTitle = `\n\n---\n\n## Raw Meeting Transcript\n\n`;
+            const textToDownload = data.notes + transcriptTitle + formattedTranscript;
 
             // Auto-trigger download
             const blob = new Blob([textToDownload], { type: 'text/markdown' });
@@ -104,7 +121,7 @@ export default function App() {
             const a = document.createElement('a');
             a.href = url;
             const dateStr = new Date().toISOString().split('T')[0];
-            a.download = `Meeting_Transcript_${dateStr}.md`;
+            a.download = `Meeting_Minutes_${dateStr}.md`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -112,8 +129,8 @@ export default function App() {
 
             setIsEndMeetingModalOpen(false);
         } catch (err: any) {
-            console.error('Transcript Save Error:', err);
-            alert(`Failed to save transcript: ${err.message}`);
+            console.error('Notes Generation Error:', err);
+            alert(`Failed to generate notes: ${err.message}`);
         } finally {
             setIsGeneratingNotes(false);
         }
@@ -245,9 +262,9 @@ export default function App() {
             {isEndMeetingModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl w-full max-w-md shadow-2xl relative">
-                        <h2 className="text-xl font-bold text-white mb-2">Save Meeting Transcript?</h2>
+                        <h2 className="text-xl font-bold text-white mb-2">Generate Meeting Minutes?</h2>
                         <p className="text-gray-400 text-sm mb-6">
-                            This will download the raw meeting transcript as a markdown file.
+                            This will send the transcript to Gemini to generate summary meeting notes and download them as a markdown file for NotebookLM.
                         </p>
 
                         <div className="flex justify-end gap-3">
@@ -269,7 +286,7 @@ export default function App() {
                                         Saving...
                                     </>
                                 ) : (
-                                    'Save Transcript'
+                                    'Generate Minutes'
                                 )}
                             </button>
                         </div>

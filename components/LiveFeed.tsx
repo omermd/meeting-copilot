@@ -58,6 +58,17 @@ const isNearBottom = (el: HTMLElement, threshold = 150): boolean => {
   return scrollHeight - scrollTop - clientHeight <= threshold;
 };
 
+const renderBoldText = (text: string) => {
+  if (!text) return null;
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index} className="font-bold text-white">{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+};
+
 export const LiveFeed: React.FC<LiveFeedProps> = ({
   segments,
   cards,
@@ -161,18 +172,26 @@ export const LiveFeed: React.FC<LiveFeedProps> = ({
             </div>
           )}
 
-          {segments.map((seg) => (
-            <div key={seg.id} className="group">
+          {segments.reduce((acc, seg) => {
+            const currentSpeaker = seg.speaker || 'Room';
+            if (acc.length === 0 || acc[acc.length - 1].speaker !== currentSpeaker) {
+              acc.push({ ...seg, speaker: currentSpeaker, texts: [seg.text] });
+            } else {
+              acc[acc.length - 1].texts.push(seg.text);
+            }
+            return acc;
+          }, [] as (TranscriptSegment & { texts: string[] })[]).map((group) => (
+            <div key={group.id} className="group">
               <div className="flex items-baseline gap-3 mb-0.5">
                 <span className="text-xs font-mono text-gray-500 shrink-0">
-                  {seg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  {group.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
                 <span className="text-xs font-bold text-emerald-400/70">
-                  {seg.speaker || 'Room'}
+                  {group.speaker}
                 </span>
               </div>
               <div className="pl-11">
-                <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{seg.text}</p>
+                <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{group.texts.join(' ')}</p>
               </div>
             </div>
           ))}
@@ -243,7 +262,7 @@ export const LiveFeed: React.FC<LiveFeedProps> = ({
                 </span>
               </div>
               <div className="prose prose-invert max-w-none text-sm leading-relaxed text-gray-200 font-medium whitespace-pre-wrap">
-                {card.text}
+                {renderBoldText(card.text)}
               </div>
             </div>
           ))}
@@ -260,7 +279,7 @@ export const LiveFeed: React.FC<LiveFeedProps> = ({
               </div>
               {streamingModelText ? (
                 <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
-                  {streamingModelText}
+                  {renderBoldText(streamingModelText)}
                   <span className="inline-block w-1.5 h-3 bg-brand-500 ml-1 animate-pulse align-middle" />
                 </p>
               ) : (

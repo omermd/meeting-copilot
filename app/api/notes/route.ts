@@ -16,14 +16,16 @@ export async function POST(req: NextRequest) {
 
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        const systemInstruction = `You are a Technical Program Manager. Generate a clean Markdown summary. 
-Include: 
+        const systemInstruction = `You are a Lead Cloud Engineer and Technical Program Manager. Generate a highly detailed, clean Markdown summary of the provided meeting transcript.
+Include the following sections:
 - Executive Summary
-- Decisions
-- Action Items (with Owners)
-- Technical Risks/Blockers.
+- Detailed Technical Summary (focusing on cloud infrastructure, architecture, and engineering discussions)
+- Decisions (Architectural & Business)
+- Next Steps / Action Items (with Owners, focusing on cloud delivery and technical tasks)
+- Technical Risks/Blockers (focusing on system constraints, security, scale, and integration challenges).
 
-Crucial: If context files (SOW/TDD) were uploaded, cross-reference them (e.g., 'Does this Action Item align with the SOW deliverables?'). Use the provided Project Goal to guide the focus of your notes.`;
+Crucial: If context files (SOW/TDD) were uploaded, cross-reference them (e.g., 'Does this Action Item align with the SOW deliverables?'). Use the provided Project Goal to guide the focus of your notes.
+Your response MUST be detailed and useful for a Cloud Engineering team. Do not be vague or generic.`;
 
         const model = genAI.getGenerativeModel({
             model: 'gemini-2.5-flash',

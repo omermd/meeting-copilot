@@ -48,12 +48,23 @@ export const useDeepgramTranscription = ({
     // Build the full transcript from segments
     const fullTranscript = segments.map(s => s.text).join(' ');
 
-    // Build formatted transcript with timestamps
-    const formattedTranscript = segments.map(s => {
+    // Build formatted transcript with timestamps grouped by speaker
+    const formattedTranscript = segments.reduce((acc, s) => {
         const time = s.timestamp.toLocaleTimeString('en-US', { hour12: false });
-        const speakerStr = s.speaker ? `${s.speaker}: ` : '';
-        return `[${time}] ${speakerStr}${s.text}`;
-    }).join('\n');
+        const speakerStr = s.speaker ? `${s.speaker}` : 'Unknown';
+
+        // If it's the first segment or a different speaker, start a new block
+        if (acc.length === 0 || acc[acc.length - 1].speaker !== speakerStr) {
+            acc.push({ speaker: speakerStr, time, text: [s.text] });
+        } else {
+            // Same speaker, append text to existing block
+            acc[acc.length - 1].text.push(s.text);
+        }
+        return acc;
+    }, [] as { speaker: string, time: string, text: string[] }[]).map(group => {
+        return `[${group.time}] ${group.speaker !== 'Unknown' ? group.speaker + ': ' : ''}${group.text.join(' ')}`;
+    }).join('\n\n');
+
 
     const clearTranscript = useCallback(() => {
         setSegments([]);
